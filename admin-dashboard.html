@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoTrack Admin — Live Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #080c10; --surface: #0d1117; --surface2: #161b22; --surface3: #1f2937;
+    --accent: #00ff88; --accent2: #00bfff; --accent3: #ff6b35;
+    --text: #e6edf3; --muted: #7d8590; --border: rgba(255,255,255,0.08);
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .orb1, .orb2 { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+  .orb1 { width: 400px; height: 400px; background: rgba(0,255,136,0.07); top: -100px; left: -100px; animation: floatOrb 8s ease-in-out infinite; }
+  .orb2 { width: 300px; height: 300px; background: rgba(0,191,255,0.07); bottom: -50px; right: -50px; animation: floatOrb 8s ease-in-out infinite; animation-delay: -4s; }
+  @keyframes floatOrb { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,20px)} }
+
+  .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    padding: 16px 0; border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px); background: rgba(8,12,16,0.85);
+  }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,0.4)} 50%{box-shadow:0 0 0 8px rgba(0,255,136,0)} }
+  .logo-text { font-size: 20px; font-weight: 800; }
+  .logo-text span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge { font-family: 'Space Mono', monospace; font-size: 11px; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
+  .badge-green { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
+  .badge-blue { background: rgba(0,191,255,0.1); color: var(--accent2); border: 1px solid rgba(0,191,255,0.2); }
+  .live-dot { display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-right: 6px; animation: blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 28px 0 0; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; animation: fadeUp 0.5s ease both;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(0,255,136,0.2); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .stat-icon { font-size: 24px; margin-bottom: 10px; }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+  /* Main grid */
+  .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px 0 40px; }
+
+  /* Panel */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; animation: fadeUp 0.5s ease both; }
+  .panel-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .panel-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  /* Map */
+  .map-panel { animation-delay: 0.1s; display: flex; flex-direction: column; }
+  #mapFrame { width: 100%; height: 420px; border: none; display: none; }
+  .map-empty { height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
+  .map-empty-icon { font-size: 48px; opacity: 0.2; }
+  .map-actions { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .map-coord-display { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); flex: 1; }
+
+  /* Right col */
+  .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+  /* New entries live feed */
+  .feed-panel { animation-delay: 0.2s; }
+  .feed-body { padding: 0; max-height: 280px; overflow-y: auto; }
+  .feed-item {
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; gap: 12px;
+    transition: background 0.2s; cursor: pointer;
+    animation: slideIn 0.4s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+  .feed-item:hover { background: rgba(255,255,255,0.02); }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #080c10; flex-shrink: 0; }
+  .feed-name { font-size: 14px; font-weight: 700; }
+  .feed-coords { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent2); }
+  .feed-time { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .feed-empty { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
+  .new-badge { background: var(--accent); color: #080c10; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; animation: newPop 0.3s ease; }
+  @keyframes newPop { from{transform:scale(0)} to{transform:scale(1)} }
+
+  /* Table */
+  .table-panel { animation-delay: 0.15s; }
+  .table-toolbar { padding: 12px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+  .search-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 8px 32px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px; outline: none; transition: all 0.2s; width: 100%; }
+  .search-input:focus { border-color: rgba(0,255,136,0.3); }
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn-export { background: transparent; color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
+  .btn-export:hover { background: rgba(255,107,53,0.08); border-color: var(--accent3); }
+  .btn-json { background: transparent; color: var(--accent2); border: 1px solid rgba(0,191,255,0.3); }
+  .btn-json:hover { background: rgba(0,191,255,0.08); border-color: var(--accent2); }
+  .btn-danger-sm { background: transparent; color: #ff4757; border: 1px solid rgba(255,71,87,0.2); }
+  .btn-danger-sm:hover { background: rgba(255,71,87,0.08); border-color: #ff4757; }
+  .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); }
+  td { padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .td-name { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .avatar { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #080c10; flex-shrink: 0; }
+  .td-coords { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); }
+  .td-time { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+  .td-acc { font-family: 'Space Mono', monospace; font-size: 11px; }
+  .acc-good { color: var(--accent); } .acc-mid { color: #ffa500; } .acc-bad { color: #ff4757; }
+  .btn-map-sm { background: transparent; border: 1px solid rgba(0,191,255,0.2); color: var(--accent2); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+  .btn-map-sm:hover { background: rgba(0,191,255,0.1); border-color: var(--accent2); }
+  .btn-del-sm { background: transparent; border: 1px solid rgba(255,71,87,0.2); color: #ff4757; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+  .btn-del-sm:hover { background: rgba(255,71,87,0.1); border-color: #ff4757; }
+  .empty-table { padding: 40px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.2; }
+  .row-new td { background: rgba(0,255,136,0.04) !important; }
+
+  /* Connection status */
+  .conn-status { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 11px; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn-dot.connected { background: var(--accent); animation: blink 2s ease-in-out infinite; }
+  .conn-dot.error { background: #ff4757; }
+
+  /* Toast */
+  .toast-wrap { position: fixed; top: 80px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600; min-width: 260px; animation: toastIn 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+  .toast.success { border-color: rgba(0,255,136,0.3); }
+  .toast.info { border-color: rgba(0,191,255,0.3); }
+  .toast.error { border-color: rgba(255,71,87,0.3); }
+
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="orb1"></div>
+<div class="orb2"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">📡</div>
+        <div class="logo-text">Geo<span>Track</span> <span style="font-size:13px;font-weight:400;color:var(--muted)">Admin</span></div>
+      </div>
+      <div class="header-right">
+        <div class="conn-status">
+          <div class="conn-dot" id="connDot"></div>
+          <span id="connText" style="color:var(--muted)">Connecting...</span>
+        </div>
+        <span class="badge badge-green"><span class="live-dot"></span>LIVE</span>
+        <span class="badge badge-blue" id="totalBadge">0 Records</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card" style="animation-delay:0s">
+      <div class="stat-icon">👥</div>
+      <div class="stat-num" id="s1">0</div>
+      <div class="stat-label">Total Records</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.05s">
+      <div class="stat-icon">📅</div>
+      <div class="stat-num" id="s2">0</div>
+      <div class="stat-label">Hari Ini</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.1s">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-num" id="s3">—</div>
+      <div class="stat-label">Avg Accuracy</div>
+    </div>
+    <div class="stat-card" style="animation-delay:0.15s">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-num" id="s4">0</div>
+      <div class="stat-label">Baru (1 Jam)</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Left: Map + Table -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Map -->
+      <div class="panel map-panel">
+        <div class="panel-header">
+          <span class="panel-title">🗺️ Map View</span>
+          <span class="badge badge-blue" id="mapLabel">Idle</span>
+        </div>
+        <div id="mapEmpty" class="map-empty">
+          <div class="map-empty-icon">🛰️</div>
+          <div style="font-size:13px;">Klik rekod untuk lihat di map</div>
+        </div>
+        <iframe id="mapFrame" allowfullscreen></iframe>
+        <div class="map-actions">
+          <span class="map-coord-display" id="mapCoords">—</span>
+          <button class="btn btn-json" onclick="openInGoogleMaps()">🌍 Google Maps</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="panel table-panel">
+        <div class="panel-header">
+          <span class="panel-title">🗄️ Semua Records</span>
+        </div>
+        <div class="table-toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Cari nama..." oninput="renderTable()" />
+          </div>
+          <button class="btn btn-export" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn btn-json" onclick="exportJSON()">{ } JSON</button>
+          <button class="btn btn-danger-sm" onclick="clearAll()">🗑 Clear All</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Nama</th><th>Koordinat</th><th>Accuracy</th><th>Masa</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="6"><div class="empty-table"><div class="empty-icon">📡</div>Connecting to Firebase...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Live Feed -->
+    <div class="right-col">
+      <div class="panel feed-panel">
+        <div class="panel-header">
+          <span class="panel-title">⚡ Live Feed</span>
+          <span class="badge badge-green" id="feedCount">0 baru</span>
+        </div>
+        <div class="feed-body" id="feedBody">
+          <div class="feed-empty">Menunggu data masuk...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAKEBjSdoLFCgGJFFdLIzP0-_Xf_VK2Jtk",
+    authDomain: "trackingapps-fb953.firebaseapp.com",
+    projectId: "trackingapps-fb953",
+    storageBucket: "trackingapps-fb953.firebasestorage.app",
+    messagingSenderId: "803582755164",
+    appId: "1:803582755164:web:6f6d90970b5859c2fbc199",
+    measurementId: "G-8QH68HLRL5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let allRecords = [];
+  let currentMapLat = null, currentMapLng = null;
+  let isFirstLoad = true;
+  let feedNewCount = 0;
+
+  // Real-time listener
+  const q = query(collection(db, 'locations'), orderBy('timestamp', 'desc'));
+
+  onSnapshot(q,
+    (snapshot) => {
+      // Connected
+      document.getElementById('connDot').className = 'conn-dot connected';
+      document.getElementById('connText').textContent = 'Connected';
+      document.getElementById('connText').style.color = 'var(--accent)';
+
+      const newDocs = [];
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added' && !isFirstLoad) {
+          newDocs.push(change.doc);
+          feedNewCount++;
+        }
+      });
+
+      // Build records array
+      allRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      if (!isFirstLoad && newDocs.length > 0) {
+        newDocs.forEach(d => {
+          const data = d.data();
+          addFeedItem(data, true);
+          toast('success', `📍 ${data.name} baru check in!`);
+        });
+      }
+
+      if (isFirstLoad) {
+        // Populate feed with latest 10
+        const latest = allRecords.slice(0, 10);
+        document.getElementById('feedBody').innerHTML = '';
+        latest.forEach(r => addFeedItem(r, false));
+        if (latest.length === 0) {
+          document.getElementById('feedBody').innerHTML = '<div class="feed-empty">Belum ada data. Tunggu orang check in...</div>';
+        }
+        isFirstLoad = false;
+      }
+
+      renderTable();
+      updateStats();
+    },
+    (error) => {
+      console.error(error);
+      document.getElementById('connDot').className = 'conn-dot error';
+      document.getElementById('connText').textContent = 'Error';
+      document.getElementById('connText').style.color = '#ff4757';
+      toast('error', '❌ Firestore connection error: ' + error.message);
+    }
+  );
+
+  function addFeedItem(data, isNew) {
+    const feed = document.getElementById('feedBody');
+    // Remove empty message
+    const empty = feed.querySelector('.feed-empty');
+    if (empty) empty.remove();
+
+    const initials = data.name ? data.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
+    const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString('ms-MY', {hour:'2-digit',minute:'2-digit'}) : 'Baru';
+    const div = document.createElement('div');
+    div.className = 'feed-item';
+    div.innerHTML = `
+      <div class="feed-avatar">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="feed-name">${esc(data.name)} ${isNew ? '<span class="new-badge">NEW</span>' : ''}</div>
+        <div class="feed-coords">${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}</div>
+      </div>
+      <div class="feed-time">${time}</div>`;
+    div.onclick = () => showOnMap(data.latitude, data.longitude, data.name);
+    if (isNew) feed.insertBefore(div, feed.firstChild);
+    else feed.appendChild(div);
+
+    document.getElementById('feedCount').textContent = `${feedNewCount} baru`;
+  }
+
+  window.renderTable = function() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allRecords.filter(r => r.name?.toLowerCase().includes(q));
+    const tbody = document.getElementById('tableBody');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-table"><div class="empty-icon">📭</div>${allRecords.length === 0 ? 'Belum ada rekod' : 'Tiada rekod sepadan'}</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((r, i) => {
+      const initials = r.name ? r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
+      const ts = r.timestamp ? new Date(r.timestamp.seconds * 1000) : null;
+      const timeStr = ts ? ts.toLocaleDateString('ms-MY', {day:'2-digit',month:'short'}) + ' ' + ts.toLocaleTimeString('ms-MY', {hour:'2-digit',minute:'2-digit'}) : '—';
+      const accClass = r.accuracy < 20 ? 'acc-good' : r.accuracy < 100 ? 'acc-mid' : 'acc-bad';
+      const isRecent = ts && (Date.now() - ts.getTime()) < 300000; // 5 min
+      return `<tr class="${isRecent ? 'row-new' : ''}">
+        <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${String(i+1).padStart(2,'0')}</td>
+        <td><div class="td-name"><div class="avatar">${initials}</div>${esc(r.name)}</div></td>
+        <td class="td-coords">${r.latitude?.toFixed(5)}, ${r.longitude?.toFixed(5)}</td>
+        <td class="td-acc ${accClass}">±${Math.round(r.accuracy || 0)}m</td>
+        <td class="td-time">${timeStr}</td>
+        <td><div style="display:flex;gap:5px;">
+          <button class="btn-map-sm" onclick="showOnMap(${r.latitude},${r.longitude},'${esc(r.name)}')">🗺️</button>
+          <button class="btn-del-sm" onclick="deleteRecord('${r.id}','${esc(r.name)}')">🗑</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  };
+
+  function updateStats() {
+    document.getElementById('s1').textContent = allRecords.length;
+    document.getElementById('totalBadge').textContent = allRecords.length + ' Records';
+    const today = new Date().toDateString();
+    const todayCount = allRecords.filter(r => r.timestamp && new Date(r.timestamp.seconds * 1000).toDateString() === today).length;
+    document.getElementById('s2').textContent = todayCount;
+    if (allRecords.length > 0) {
+      const avg = allRecords.reduce((s,r) => s + (r.accuracy||0), 0) / allRecords.length;
+      document.getElementById('s3').textContent = Math.round(avg) + 'm';
+    }
+    const oneHourAgo = Date.now() - 3600000;
+    const recentCount = allRecords.filter(r => r.timestamp && r.timestamp.seconds * 1000 > oneHourAgo).length;
+    document.getElementById('s4').textContent = recentCount;
+  }
+
+  window.showOnMap = function(lat, lng, name) {
+    currentMapLat = lat; currentMapLng = lng;
+    const frame = document.getElementById('mapFrame');
+    const empty = document.getElementById('mapEmpty');
+    frame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.008},${lat-0.008},${lng+0.008},${lat+0.008}&layer=mapnik&marker=${lat},${lng}`;
+    frame.style.display = 'block';
+    empty.style.display = 'none';
+    document.getElementById('mapLabel').textContent = name || 'Active';
+    document.getElementById('mapLabel').className = 'badge badge-green';
+    document.getElementById('mapCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    toast('info', `🗺️ Menunjukkan lokasi ${name || ''}`);
+  };
+
+  window.openInGoogleMaps = function() {
+    if (!currentMapLat) { toast('info', 'Pilih rekod dahulu'); return; }
+    window.open(`https://www.google.com/maps?q=${currentMapLat},${currentMapLng}`, '_blank');
+  };
+
+  window.deleteRecord = async function(id, name) {
+    if (!confirm(`Padam rekod "${name}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'locations', id));
+      toast('info', `🗑 "${name}" dipadam`);
+    } catch(e) { toast('error', 'Gagal padam: ' + e.message); }
+  };
+
+  window.clearAll = async function() {
+    if (allRecords.length === 0) { toast('info', 'Tiada rekod'); return; }
+    if (!confirm(`Padam SEMUA ${allRecords.length} rekod? Tak boleh undo!`)) return;
+    try {
+      const { writeBatch } = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js");
+      const batch = writeBatch(db);
+      allRecords.forEach(r => batch.delete(doc(db, 'locations', r.id)));
+      await batch.commit();
+      toast('info', '🗑 Semua rekod dipadam');
+    } catch(e) { toast('error', 'Gagal: ' + e.message); }
+  };
+
+  window.exportCSV = function() {
+    if (!allRecords.length) { toast('info', 'Tiada data'); return; }
+    const h = 'Name,Latitude,Longitude,Accuracy(m),Timestamp\n';
+    const rows = allRecords.map(r => {
+      const ts = r.timestamp ? new Date(r.timestamp.seconds*1000).toISOString() : '';
+      return `"${r.name}",${r.latitude},${r.longitude},${Math.round(r.accuracy||0)},"${ts}"`;
+    }).join('\n');
+    dl('geotrack_export.csv', h+rows, 'text/csv');
+    toast('success', `⬇️ CSV exported (${allRecords.length} rekod)`);
+  };
+
+  window.exportJSON = function() {
+    if (!allRecords.length) { toast('info', 'Tiada data'); return; }
+    const data = allRecords.map(r => ({ ...r, timestamp: r.timestamp ? new Date(r.timestamp.seconds*1000).toISOString() : null }));
+    dl('geotrack_export.json', JSON.stringify(data, null, 2), 'application/json');
+    toast('success', `{ } JSON exported (${allRecords.length} rekod)`);
+  };
+
+  function dl(name, content, mime) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], {type:mime}));
+    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  window.toast = function(type, msg) {
+    const c = document.getElementById('toastWrap');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(16px)'; t.style.transition='all 0.3s ease'; setTimeout(()=>t.remove(),300); }, 4000);
+  };
+</script>
+</body>
+</html>
