@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GeoTrack Admin — Live Dashboard</title>
+<title>GeoTrack Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- QR Code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -19,257 +21,362 @@
     background-image: linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
     background-size: 40px 40px; pointer-events: none; z-index: 0;
   }
-  .orb1, .orb2 { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
-  .orb1 { width: 400px; height: 400px; background: rgba(0,255,136,0.07); top: -100px; left: -100px; animation: floatOrb 8s ease-in-out infinite; }
-  .orb2 { width: 300px; height: 300px; background: rgba(0,191,255,0.07); bottom: -50px; right: -50px; animation: floatOrb 8s ease-in-out infinite; animation-delay: -4s; }
-  @keyframes floatOrb { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,20px)} }
+  .orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+  .orb1 { width: 500px; height: 500px; background: rgba(0,255,136,0.06); top: -150px; left: -150px; animation: orb 10s ease-in-out infinite; }
+  .orb2 { width: 350px; height: 350px; background: rgba(0,191,255,0.06); bottom: -100px; right: -100px; animation: orb 10s ease-in-out infinite; animation-delay: -5s; }
+  @keyframes orb { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,25px)} }
 
-  .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+  .wrap { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 0 24px; }
 
+  /* Header */
   header {
     position: sticky; top: 0; z-index: 100;
-    padding: 16px 0; border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(12px); background: rgba(8,12,16,0.85);
+    backdrop-filter: blur(14px); background: rgba(8,12,16,0.88);
+    border-bottom: 1px solid var(--border);
   }
-  .header-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,0.4)} 50%{box-shadow:0 0 0 8px rgba(0,255,136,0)} }
-  .logo-text { font-size: 20px; font-weight: 800; }
-  .logo-text span { color: var(--accent); }
-  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .badge { font-family: 'Space Mono', monospace; font-size: 11px; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; }
-  .badge-green { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
-  .badge-blue { background: rgba(0,191,255,0.1); color: var(--accent2); border: 1px solid rgba(0,191,255,0.2); }
-  .live-dot { display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-right: 6px; animation: blink 1.5s ease-in-out infinite; }
+  .hdr { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; flex-wrap: wrap; gap: 10px; }
+  .logo { display: flex; align-items: center; gap: 11px; }
+  .logo-box {
+    width: 36px; height: 36px; background: var(--accent); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    animation: lp 2s ease-in-out infinite;
+  }
+  @keyframes lp { 0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,0.4)} 50%{box-shadow:0 0 0 8px rgba(0,255,136,0)} }
+  .logo-txt { font-size: 19px; font-weight: 800; }
+  .logo-txt span { color: var(--accent); }
+  .hdr-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+    letter-spacing: 1.2px; padding: 5px 12px; border-radius: 20px;
+  }
+  .chip-g { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
+  .chip-b { background: rgba(0,191,255,0.1); color: var(--accent2); border: 1px solid rgba(0,191,255,0.2); }
+  .ldot { display: inline-block; width: 5px; height: 5px; background: var(--accent); border-radius: 50%; margin-right: 5px; animation: blink 1.5s ease-in-out infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .conn-badge { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 11px; }
+  .cdot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+  .cdot.on { background: var(--accent); animation: blink 2s ease-in-out infinite; }
+  .cdot.err { background: #ff4757; }
 
   /* Stats */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 28px 0 0; }
-  .stat-card {
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; padding: 24px 0 0; }
+  .scard {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 20px; animation: fadeUp 0.5s ease both;
-    transition: border-color 0.2s;
+    padding: 18px 20px; animation: up 0.5s ease both; cursor: default;
+    transition: border-color 0.2s, transform 0.2s;
   }
-  .stat-card:hover { border-color: rgba(0,255,136,0.2); }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-  .stat-icon { font-size: 24px; margin-bottom: 10px; }
-  .stat-num { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
-  .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .scard:hover { border-color: rgba(0,255,136,0.2); transform: translateY(-2px); }
+  @keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  .scard-ico { font-size: 22px; margin-bottom: 10px; }
+  .scard-num { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .scard-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
 
-  /* Main grid */
-  .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px 0 40px; }
+  /* Main layout */
+  .main { display: grid; grid-template-columns: 1fr 360px; gap: 18px; padding: 18px 0 40px; }
 
   /* Panel */
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; animation: fadeUp 0.5s ease both; }
-  .panel-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-  .panel-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; animation: up 0.5s ease both; }
+  .ph { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .ptitle { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
 
   /* Map */
-  .map-panel { animation-delay: 0.1s; display: flex; flex-direction: column; }
-  #mapFrame { width: 100%; height: 420px; border: none; display: none; }
-  .map-empty { height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
-  .map-empty-icon { font-size: 48px; opacity: 0.2; }
-  .map-actions { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .map-coord-display { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); flex: 1; }
+  .map-panel { display: flex; flex-direction: column; }
+  #mapFrame { width: 100%; height: 400px; border: none; display: none; }
+  .map-ph { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+  .map-ph-ico { font-size: 44px; opacity: 0.18; }
+  .map-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .map-coord { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); flex: 1; }
 
   /* Right col */
-  .right-col { display: flex; flex-direction: column; gap: 16px; }
+  .rc { display: flex; flex-direction: column; gap: 16px; }
 
-  /* New entries live feed */
-  .feed-panel { animation-delay: 0.2s; }
-  .feed-body { padding: 0; max-height: 280px; overflow-y: auto; }
-  .feed-item {
-    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
-    display: flex; align-items: center; gap: 12px;
-    transition: background 0.2s; cursor: pointer;
-    animation: slideIn 0.4s ease;
+  /* QR Panel */
+  .qr-panel { animation-delay: 0.1s; }
+  .qr-body { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+  /* QR URL input */
+  .url-row { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .url-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .url-input {
+    width: 100%;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 12px; color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    outline: none; transition: border-color 0.2s;
   }
-  @keyframes slideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
-  .feed-item:hover { background: rgba(255,255,255,0.02); }
-  .feed-item:last-child { border-bottom: none; }
-  .feed-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #080c10; flex-shrink: 0; }
-  .feed-name { font-size: 14px; font-weight: 700; }
-  .feed-coords { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent2); }
-  .feed-time { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin-left: auto; white-space: nowrap; }
-  .feed-empty { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
-  .new-badge { background: var(--accent); color: #080c10; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; animation: newPop 0.3s ease; }
-  @keyframes newPop { from{transform:scale(0)} to{transform:scale(1)} }
+  .url-input:focus { border-color: rgba(0,255,136,0.3); }
+
+  /* QR box */
+  .qr-display {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; align-items: center; justify-content: center;
+    width: 180px; height: 180px;
+    position: relative;
+  }
+  .qr-empty-msg { font-size: 12px; color: #999; text-align: center; padding: 10px; }
+  #qrcode canvas, #qrcode img { border-radius: 4px !important; }
+
+  .qr-actions { display: flex; gap: 8px; width: 100%; }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 16px; border-radius: 9px; border: none;
+    cursor: pointer; font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn-g { background: var(--accent); color: #080c10; }
+  .btn-g:hover { background: #00ffaa; box-shadow: 0 0 16px rgba(0,255,136,0.3); }
+  .btn-b { background: transparent; color: var(--accent2); border: 1px solid rgba(0,191,255,0.3); }
+  .btn-b:hover { background: rgba(0,191,255,0.08); border-color: var(--accent2); }
+  .btn-o { background: transparent; color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
+  .btn-o:hover { background: rgba(255,107,53,0.08); border-color: var(--accent3); }
+  .btn-r { background: transparent; color: #ff4757; border: 1px solid rgba(255,71,87,0.2); }
+  .btn-r:hover { background: rgba(255,71,87,0.08); border-color: #ff4757; }
+  .btn-full { width: 100%; justify-content: center; padding: 11px; }
+
+  /* QR link display */
+  .qr-link-box {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px 12px;
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    color: var(--accent2); word-break: break-all; line-height: 1.5;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .qr-link-box:hover { border-color: rgba(0,191,255,0.3); }
+
+  /* Live feed */
+  .feed-panel { animation-delay: 0.2s; }
+  .fb { max-height: 260px; overflow-y: auto; }
+  .fi {
+    padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; transition: background 0.15s;
+    animation: slideR 0.35s ease;
+  }
+  @keyframes slideR { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:translateX(0)} }
+  .fi:hover { background: rgba(255,255,255,0.02); }
+  .fi:last-child { border-bottom: none; }
+  .fav {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #080c10; flex-shrink: 0;
+  }
+  .fn { font-size: 13px; font-weight: 700; }
+  .fc { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent2); }
+  .ft { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .new-tag {
+    background: var(--accent); color: #080c10;
+    font-size: 9px; font-weight: 800;
+    padding: 2px 5px; border-radius: 4px; letter-spacing: 0.5px;
+    animation: tagPop 0.3s ease;
+  }
+  @keyframes tagPop { from{transform:scale(0)} to{transform:scale(1)} }
+  .fempty { padding: 30px; text-align: center; color: var(--muted); font-size: 13px; }
 
   /* Table */
-  .table-panel { animation-delay: 0.15s; }
-  .table-toolbar { padding: 12px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .search-wrap { position: relative; flex: 1; min-width: 180px; }
-  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
-  .search-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 8px 32px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px; outline: none; transition: all 0.2s; width: 100%; }
-  .search-input:focus { border-color: rgba(0,255,136,0.3); }
-  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .btn-export { background: transparent; color: var(--accent3); border: 1px solid rgba(255,107,53,0.3); }
-  .btn-export:hover { background: rgba(255,107,53,0.08); border-color: var(--accent3); }
-  .btn-json { background: transparent; color: var(--accent2); border: 1px solid rgba(0,191,255,0.3); }
-  .btn-json:hover { background: rgba(0,191,255,0.08); border-color: var(--accent2); }
-  .btn-danger-sm { background: transparent; color: #ff4757; border: 1px solid rgba(255,71,87,0.2); }
-  .btn-danger-sm:hover { background: rgba(255,71,87,0.08); border-color: #ff4757; }
-  .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  .tpanel { animation-delay: 0.12s; }
+  .ttbar {
+    padding: 10px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .sw { position: relative; flex: 1; min-width: 160px; }
+  .sico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; pointer-events: none; }
+  .sinput {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 9px 7px 28px; color: var(--text);
+    font-family: 'Syne', sans-serif; font-size: 12px; outline: none;
+    transition: border-color 0.2s; width: 100%;
+  }
+  .sinput:focus { border-color: rgba(0,255,136,0.3); }
+  .tscroll { overflow-x: auto; max-height: 380px; overflow-y: auto; }
   table { width: 100%; border-collapse: collapse; }
-  th { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); }
-  td { padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; vertical-align: middle; }
+  th {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); padding: 11px 14px; text-align: left;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface); z-index: 2;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(255,255,255,0.02); }
-  .td-name { display: flex; align-items: center; gap: 8px; font-weight: 700; }
-  .avatar { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #080c10; flex-shrink: 0; }
-  .td-coords { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); }
-  .td-time { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
-  .td-acc { font-family: 'Space Mono', monospace; font-size: 11px; }
-  .acc-good { color: var(--accent); } .acc-mid { color: #ffa500; } .acc-bad { color: #ff4757; }
-  .btn-map-sm { background: transparent; border: 1px solid rgba(0,191,255,0.2); color: var(--accent2); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
-  .btn-map-sm:hover { background: rgba(0,191,255,0.1); border-color: var(--accent2); }
-  .btn-del-sm { background: transparent; border: 1px solid rgba(255,71,87,0.2); color: #ff4757; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
-  .btn-del-sm:hover { background: rgba(255,71,87,0.1); border-color: #ff4757; }
-  .empty-table { padding: 40px; text-align: center; color: var(--muted); }
-  .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.2; }
-  .row-new td { background: rgba(0,255,136,0.04) !important; }
-
-  /* Connection status */
-  .conn-status { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 11px; }
-  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-  .conn-dot.connected { background: var(--accent); animation: blink 2s ease-in-out infinite; }
-  .conn-dot.error { background: #ff4757; }
+  .tname { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .tav { width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #080c10; flex-shrink: 0; }
+  .tcoord { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent2); }
+  .ttime { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+  .tacc { font-family: 'Space Mono', monospace; font-size: 10px; }
+  .ag { color: var(--accent); } .am { color: #ffa500; } .ab { color: #ff4757; }
+  .tsrc {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 2px 7px; border-radius: 5px;
+  }
+  .tsrc-qr { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.15); }
+  .tsrc-web { background: rgba(0,191,255,0.1); color: var(--accent2); border: 1px solid rgba(0,191,255,0.15); }
+  .bmaps { background: transparent; border: 1px solid rgba(0,191,255,0.2); color: var(--accent2); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; cursor: pointer; transition: all 0.15s; }
+  .bmaps:hover { background: rgba(0,191,255,0.1); border-color: var(--accent2); }
+  .bdel { background: transparent; border: 1px solid rgba(255,71,87,0.2); color: #ff4757; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; cursor: pointer; transition: all 0.15s; }
+  .bdel:hover { background: rgba(255,71,87,0.1); border-color: #ff4757; }
+  .empty-t { padding: 36px; text-align: center; color: var(--muted); }
+  .empty-i { font-size: 28px; margin-bottom: 8px; opacity: 0.2; }
+  .row-new td { background: rgba(0,255,136,0.03) !important; }
 
   /* Toast */
-  .toast-wrap { position: fixed; top: 80px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
-  .toast { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600; min-width: 260px; animation: toastIn 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; }
-  @keyframes toastIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
-  .toast.success { border-color: rgba(0,255,136,0.3); }
-  .toast.info { border-color: rgba(0,191,255,0.3); }
-  .toast.error { border-color: rgba(255,71,87,0.3); }
+  .tc { position: fixed; top: 76px; right: 18px; z-index: 999; display: flex; flex-direction: column; gap: 7px; }
+  .toast { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 12px; font-weight: 600; min-width: 240px; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.4); animation: tin 0.3s ease; }
+  @keyframes tin { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+  .toast.s { border-color: rgba(0,255,136,0.3); }
+  .toast.i { border-color: rgba(0,191,255,0.3); }
+  .toast.e { border-color: rgba(255,71,87,0.3); }
 
   ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:1050px) { .main{grid-template-columns:1fr} .stats{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:600px) { .stats{grid-template-columns:repeat(2,1fr)} }
 </style>
 </head>
 <body>
-<div class="orb1"></div>
-<div class="orb2"></div>
-<div class="toast-wrap" id="toastWrap"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="tc" id="tc"></div>
 
 <header>
-  <div class="container">
-    <div class="header-inner">
+  <div class="wrap">
+    <div class="hdr">
       <div class="logo">
-        <div class="logo-icon">📡</div>
-        <div class="logo-text">Geo<span>Track</span> <span style="font-size:13px;font-weight:400;color:var(--muted)">Admin</span></div>
+        <div class="logo-box">📡</div>
+        <div class="logo-txt">Geo<span>Track</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">Admin</span></div>
       </div>
-      <div class="header-right">
-        <div class="conn-status">
-          <div class="conn-dot" id="connDot"></div>
-          <span id="connText" style="color:var(--muted)">Connecting...</span>
+      <div class="hdr-right">
+        <div class="conn-badge">
+          <div class="cdot" id="cdot"></div>
+          <span id="ctext" style="color:var(--muted)">Connecting...</span>
         </div>
-        <span class="badge badge-green"><span class="live-dot"></span>LIVE</span>
-        <span class="badge badge-blue" id="totalBadge">0 Records</span>
+        <span class="chip chip-g"><span class="ldot"></span>LIVE</span>
+        <span class="chip chip-b" id="totalChip">0 Records</span>
       </div>
     </div>
   </div>
 </header>
 
-<div class="container">
+<div class="wrap">
   <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card" style="animation-delay:0s">
-      <div class="stat-icon">👥</div>
-      <div class="stat-num" id="s1">0</div>
-      <div class="stat-label">Total Records</div>
-    </div>
-    <div class="stat-card" style="animation-delay:0.05s">
-      <div class="stat-icon">📅</div>
-      <div class="stat-num" id="s2">0</div>
-      <div class="stat-label">Hari Ini</div>
-    </div>
-    <div class="stat-card" style="animation-delay:0.1s">
-      <div class="stat-icon">🎯</div>
-      <div class="stat-num" id="s3">—</div>
-      <div class="stat-label">Avg Accuracy</div>
-    </div>
-    <div class="stat-card" style="animation-delay:0.15s">
-      <div class="stat-icon">⚡</div>
-      <div class="stat-num" id="s4">0</div>
-      <div class="stat-label">Baru (1 Jam)</div>
-    </div>
+  <div class="stats">
+    <div class="scard" style="animation-delay:0s"><div class="scard-ico">👥</div><div class="scard-num" id="s1">0</div><div class="scard-lbl">Total Records</div></div>
+    <div class="scard" style="animation-delay:0.05s"><div class="scard-ico">📅</div><div class="scard-num" id="s2">0</div><div class="scard-lbl">Hari Ini</div></div>
+    <div class="scard" style="animation-delay:0.1s"><div class="scard-ico">📱</div><div class="scard-num" id="s3">0</div><div class="scard-lbl">Via QR</div></div>
+    <div class="scard" style="animation-delay:0.15s"><div class="scard-ico">⚡</div><div class="scard-num" id="s4">0</div><div class="scard-lbl">1 Jam Lepas</div></div>
   </div>
 
-  <!-- Main grid -->
-  <div class="main-grid">
-
-    <!-- Left: Map + Table -->
+  <div class="main">
+    <!-- Left -->
     <div style="display:flex;flex-direction:column;gap:16px;">
 
       <!-- Map -->
-      <div class="panel map-panel">
-        <div class="panel-header">
-          <span class="panel-title">🗺️ Map View</span>
-          <span class="badge badge-blue" id="mapLabel">Idle</span>
+      <div class="panel map-panel" style="animation-delay:0.1s">
+        <div class="ph">
+          <span class="ptitle">🗺️ Map View</span>
+          <span class="chip chip-b" id="maplabel">Idle</span>
         </div>
-        <div id="mapEmpty" class="map-empty">
-          <div class="map-empty-icon">🛰️</div>
-          <div style="font-size:13px;">Klik rekod untuk lihat di map</div>
+        <div id="mapph" class="map-ph">
+          <div class="map-ph-ico">🛰️</div>
+          <div style="font-size:12px">Klik rekod untuk lihat di map</div>
         </div>
-        <iframe id="mapFrame" allowfullscreen></iframe>
-        <div class="map-actions">
-          <span class="map-coord-display" id="mapCoords">—</span>
-          <button class="btn btn-json" onclick="openInGoogleMaps()">🌍 Google Maps</button>
+        <iframe id="mapf" allowfullscreen></iframe>
+        <div class="map-foot">
+          <span class="map-coord" id="mapcoord">—</span>
+          <button class="btn btn-b" onclick="openGmaps()">🌍 Google Maps</button>
         </div>
       </div>
 
       <!-- Table -->
-      <div class="panel table-panel">
-        <div class="panel-header">
-          <span class="panel-title">🗄️ Semua Records</span>
+      <div class="panel tpanel">
+        <div class="ph">
+          <span class="ptitle">🗄️ Semua Records</span>
         </div>
-        <div class="table-toolbar">
-          <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" class="search-input" id="searchInput" placeholder="Cari nama..." oninput="renderTable()" />
+        <div class="ttbar">
+          <div class="sw">
+            <span class="sico">🔍</span>
+            <input type="text" class="sinput" id="search" placeholder="Cari nama..." oninput="renderTable()" />
           </div>
-          <button class="btn btn-export" onclick="exportCSV()">⬇ CSV</button>
-          <button class="btn btn-json" onclick="exportJSON()">{ } JSON</button>
-          <button class="btn btn-danger-sm" onclick="clearAll()">🗑 Clear All</button>
+          <button class="btn btn-o" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn btn-b" onclick="exportJSON()">{ } JSON</button>
+          <button class="btn btn-r" onclick="clearAll()">🗑 Clear</button>
         </div>
-        <div class="table-scroll">
+        <div class="tscroll">
           <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Nama</th><th>Koordinat</th><th>Accuracy</th><th>Masa</th><th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <tr><td colspan="6"><div class="empty-table"><div class="empty-icon">📡</div>Connecting to Firebase...</div></td></tr>
+            <thead><tr><th>#</th><th>Nama</th><th>Koordinat</th><th>Acc</th><th>Source</th><th>Masa</th><th>Aksi</th></tr></thead>
+            <tbody id="tbody">
+              <tr><td colspan="7"><div class="empty-t"><div class="empty-i">📡</div>Connecting to Firebase...</div></td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- Right: Live Feed -->
-    <div class="right-col">
-      <div class="panel feed-panel">
-        <div class="panel-header">
-          <span class="panel-title">⚡ Live Feed</span>
-          <span class="badge badge-green" id="feedCount">0 baru</span>
+    <!-- Right col -->
+    <div class="rc">
+
+      <!-- QR Generator -->
+      <div class="panel qr-panel" style="animation-delay:0.05s">
+        <div class="ph">
+          <span class="ptitle">📱 QR Code Generator</span>
+          <span class="chip chip-g">Scan & Go</span>
         </div>
-        <div class="feed-body" id="feedBody">
-          <div class="feed-empty">Menunggu data masuk...</div>
+        <div class="qr-body">
+          <div class="url-row">
+            <label class="url-lbl">URL Check-In Page</label>
+            <input type="text" class="url-input" id="qrUrl" placeholder="https://..." oninput="regenerateQR()" />
+          </div>
+
+          <div class="qr-display">
+            <div id="qrcode"><div class="qr-empty-msg">Masukkan URL<br>untuk jana QR</div></div>
+          </div>
+
+          <div id="qrLinkBox" class="qr-link-box" style="display:none" onclick="copyLink()" title="Klik untuk copy">
+            🔗 Klik untuk copy link
+          </div>
+
+          <div class="qr-actions">
+            <button class="btn btn-g btn-full" onclick="downloadQR()">⬇ Download QR PNG</button>
+          </div>
+          <div class="qr-actions">
+            <button class="btn btn-b" style="flex:1;justify-content:center" onclick="copyLink()">📋 Copy Link</button>
+            <button class="btn btn-o" style="flex:1;justify-content:center" onclick="openLink()">↗ Buka</button>
+          </div>
+
+          <div style="width:100%;background:var(--surface2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">💡 Tips</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7">
+              1. Letak URL file <code style="color:var(--accent2)">checkin.html</code> anda<br>
+              2. Download QR & print<br>
+              3. Orang scan → terus detect GPS<br>
+              4. Admin tengok real-time ✅
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
+      <!-- Live Feed -->
+      <div class="panel feed-panel" style="animation-delay:0.15s">
+        <div class="ph">
+          <span class="ptitle">⚡ Live Feed</span>
+          <span class="chip chip-g" id="feedchip">0 baru</span>
+        </div>
+        <div class="fb" id="fb">
+          <div class="fempty">Menunggu check in...</div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, deleteDoc, doc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAKEBjSdoLFCgGJFFdLIzP0-_Xf_VK2Jtk",
@@ -285,111 +392,168 @@
   const db = getFirestore(app);
 
   let allRecords = [];
-  let currentMapLat = null, currentMapLng = null;
-  let isFirstLoad = true;
-  let feedNewCount = 0;
+  let curLat = null, curLng = null;
+  let firstLoad = true;
+  let newCount = 0;
+  let qrInstance = null;
+  let currentQrUrl = '';
 
-  // Real-time listener
+  // ── QR CODE ──────────────────────────────────
+  window.regenerateQR = function() {
+    const url = document.getElementById('qrUrl').value.trim();
+    if (!url) {
+      document.getElementById('qrcode').innerHTML = '<div class="qr-empty-msg">Masukkan URL<br>untuk jana QR</div>';
+      document.getElementById('qrLinkBox').style.display = 'none';
+      return;
+    }
+    currentQrUrl = url;
+    document.getElementById('qrcode').innerHTML = '';
+    try {
+      qrInstance = new QRCode(document.getElementById('qrcode'), {
+        text: url,
+        width: 150, height: 150,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      document.getElementById('qrLinkBox').style.display = 'block';
+      document.getElementById('qrLinkBox').textContent = '🔗 ' + url;
+    } catch(e) {
+      document.getElementById('qrcode').innerHTML = '<div class="qr-empty-msg" style="color:#ff4757">URL tidak valid</div>';
+    }
+  };
+
+  window.downloadQR = function() {
+    if (!currentQrUrl) { toast('i', 'Masukkan URL dahulu'); return; }
+    setTimeout(() => {
+      const canvas = document.querySelector('#qrcode canvas');
+      const img = document.querySelector('#qrcode img');
+      if (canvas) {
+        const a = document.createElement('a');
+        a.download = 'geotrack-qr.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        toast('s', '⬇ QR downloaded!');
+      } else if (img) {
+        const a = document.createElement('a');
+        a.download = 'geotrack-qr.png';
+        a.href = img.src;
+        a.click();
+        toast('s', '⬇ QR downloaded!');
+      } else {
+        toast('i', 'Jana QR dahulu');
+      }
+    }, 100);
+  };
+
+  window.copyLink = function() {
+    if (!currentQrUrl) { toast('i', 'Masukkan URL dahulu'); return; }
+    navigator.clipboard.writeText(currentQrUrl).then(() => {
+      toast('s', '📋 Link disalin!');
+    }).catch(() => {
+      toast('i', 'Gagal copy. Cuba manual.');
+    });
+  };
+
+  window.openLink = function() {
+    if (!currentQrUrl) { toast('i', 'Masukkan URL dahulu'); return; }
+    window.open(currentQrUrl, '_blank');
+  };
+
+  // Set default URL hint
+  document.getElementById('qrUrl').placeholder = window.location.origin + '/checkin.html';
+
+  // ── FIREBASE REALTIME ─────────────────────────
   const q = query(collection(db, 'locations'), orderBy('timestamp', 'desc'));
 
   onSnapshot(q,
-    (snapshot) => {
-      // Connected
-      document.getElementById('connDot').className = 'conn-dot connected';
-      document.getElementById('connText').textContent = 'Connected';
-      document.getElementById('connText').style.color = 'var(--accent)';
+    (snap) => {
+      document.getElementById('cdot').className = 'cdot on';
+      document.getElementById('ctext').textContent = 'Connected';
+      document.getElementById('ctext').style.color = 'var(--accent)';
 
-      const newDocs = [];
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added' && !isFirstLoad) {
-          newDocs.push(change.doc);
-          feedNewCount++;
-        }
+      const added = [];
+      snap.docChanges().forEach(c => {
+        if (c.type === 'added' && !firstLoad) { added.push(c.doc); newCount++; }
       });
 
-      // Build records array
-      allRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      if (!isFirstLoad && newDocs.length > 0) {
-        newDocs.forEach(d => {
-          const data = d.data();
-          addFeedItem(data, true);
-          toast('success', `📍 ${data.name} baru check in!`);
+      if (!firstLoad && added.length) {
+        added.forEach(d => {
+          addFeedItem(d.data(), true);
+          toast('s', `📍 ${d.data().name} baru check in!`);
         });
+        document.getElementById('feedchip').textContent = newCount + ' baru';
       }
 
-      if (isFirstLoad) {
-        // Populate feed with latest 10
-        const latest = allRecords.slice(0, 10);
-        document.getElementById('feedBody').innerHTML = '';
-        latest.forEach(r => addFeedItem(r, false));
-        if (latest.length === 0) {
-          document.getElementById('feedBody').innerHTML = '<div class="feed-empty">Belum ada data. Tunggu orang check in...</div>';
-        }
-        isFirstLoad = false;
+      if (firstLoad) {
+        const fb = document.getElementById('fb');
+        fb.innerHTML = '';
+        allRecords.slice(0, 12).forEach(r => addFeedItem(r, false));
+        if (allRecords.length === 0) fb.innerHTML = '<div class="fempty">Belum ada check in. Share QR! 📱</div>';
+        firstLoad = false;
       }
 
       renderTable();
       updateStats();
     },
-    (error) => {
-      console.error(error);
-      document.getElementById('connDot').className = 'conn-dot error';
-      document.getElementById('connText').textContent = 'Error';
-      document.getElementById('connText').style.color = '#ff4757';
-      toast('error', '❌ Firestore connection error: ' + error.message);
+    (err) => {
+      document.getElementById('cdot').className = 'cdot err';
+      document.getElementById('ctext').textContent = 'Error';
+      document.getElementById('ctext').style.color = '#ff4757';
+      toast('e', '❌ Firebase error: ' + err.message);
     }
   );
 
   function addFeedItem(data, isNew) {
-    const feed = document.getElementById('feedBody');
-    // Remove empty message
-    const empty = feed.querySelector('.feed-empty');
+    const fb = document.getElementById('fb');
+    const empty = fb.querySelector('.fempty');
     if (empty) empty.remove();
 
-    const initials = data.name ? data.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
-    const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString('ms-MY', {hour:'2-digit',minute:'2-digit'}) : 'Baru';
+    const init = data.name ? data.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
+    const t = data.timestamp ? new Date(data.timestamp.seconds*1000).toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'}) : 'Baru';
     const div = document.createElement('div');
-    div.className = 'feed-item';
+    div.className = 'fi';
     div.innerHTML = `
-      <div class="feed-avatar">${initials}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="feed-name">${esc(data.name)} ${isNew ? '<span class="new-badge">NEW</span>' : ''}</div>
-        <div class="feed-coords">${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}</div>
+      <div class="fav">${init}</div>
+      <div style="flex:1;min-width:0">
+        <div class="fn">${esc(data.name)} ${isNew?'<span class="new-tag">NEW</span>':''}</div>
+        <div class="fc">${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}</div>
       </div>
-      <div class="feed-time">${time}</div>`;
-    div.onclick = () => showOnMap(data.latitude, data.longitude, data.name);
-    if (isNew) feed.insertBefore(div, feed.firstChild);
-    else feed.appendChild(div);
-
-    document.getElementById('feedCount').textContent = `${feedNewCount} baru`;
+      <div class="ft">${t}</div>`;
+    div.onclick = () => showMap(data.latitude, data.longitude, data.name);
+    if (isNew) fb.insertBefore(div, fb.firstChild);
+    else fb.appendChild(div);
   }
 
   window.renderTable = function() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = allRecords.filter(r => r.name?.toLowerCase().includes(q));
-    const tbody = document.getElementById('tableBody');
+    const q = document.getElementById('search').value.toLowerCase();
+    const f = allRecords.filter(r => (r.name||'').toLowerCase().includes(q));
+    const tb = document.getElementById('tbody');
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-table"><div class="empty-icon">📭</div>${allRecords.length === 0 ? 'Belum ada rekod' : 'Tiada rekod sepadan'}</div></td></tr>`;
+    if (!f.length) {
+      tb.innerHTML = `<tr><td colspan="7"><div class="empty-t"><div class="empty-i">📭</div>${allRecords.length===0?'Belum ada rekod. Share QR code anda!':'Tiada rekod sepadan'}</div></td></tr>`;
       return;
     }
 
-    tbody.innerHTML = filtered.map((r, i) => {
-      const initials = r.name ? r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
-      const ts = r.timestamp ? new Date(r.timestamp.seconds * 1000) : null;
-      const timeStr = ts ? ts.toLocaleDateString('ms-MY', {day:'2-digit',month:'short'}) + ' ' + ts.toLocaleTimeString('ms-MY', {hour:'2-digit',minute:'2-digit'}) : '—';
-      const accClass = r.accuracy < 20 ? 'acc-good' : r.accuracy < 100 ? 'acc-mid' : 'acc-bad';
-      const isRecent = ts && (Date.now() - ts.getTime()) < 300000; // 5 min
-      return `<tr class="${isRecent ? 'row-new' : ''}">
-        <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${String(i+1).padStart(2,'0')}</td>
-        <td><div class="td-name"><div class="avatar">${initials}</div>${esc(r.name)}</div></td>
-        <td class="td-coords">${r.latitude?.toFixed(5)}, ${r.longitude?.toFixed(5)}</td>
-        <td class="td-acc ${accClass}">±${Math.round(r.accuracy || 0)}m</td>
-        <td class="td-time">${timeStr}</td>
-        <td><div style="display:flex;gap:5px;">
-          <button class="btn-map-sm" onclick="showOnMap(${r.latitude},${r.longitude},'${esc(r.name)}')">🗺️</button>
-          <button class="btn-del-sm" onclick="deleteRecord('${r.id}','${esc(r.name)}')">🗑</button>
+    tb.innerHTML = f.map((r,i) => {
+      const init = r.name ? r.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '??';
+      const ts = r.timestamp ? new Date(r.timestamp.seconds*1000) : null;
+      const tstr = ts ? ts.toLocaleDateString('ms-MY',{day:'2-digit',month:'short'})+' '+ts.toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const ac = r.accuracy < 20 ? 'ag' : r.accuracy < 100 ? 'am' : 'ab';
+      const isNew = ts && (Date.now() - ts.getTime()) < 300000;
+      const src = r.source === 'qr' ? '<span class="tsrc tsrc-qr">QR</span>' : '<span class="tsrc tsrc-web">Web</span>';
+      return `<tr class="${isNew?'row-new':''}">
+        <td style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)">${String(i+1).padStart(2,'0')}</td>
+        <td><div class="tname"><div class="tav">${init}</div>${esc(r.name)}</div></td>
+        <td class="tcoord">${r.latitude?.toFixed(5)}, ${r.longitude?.toFixed(5)}</td>
+        <td class="tacc ${ac}">±${Math.round(r.accuracy||0)}m</td>
+        <td>${src}</td>
+        <td class="ttime">${tstr}</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="bmaps" onclick="showMap(${r.latitude},${r.longitude},'${esc(r.name)}')">🗺️</button>
+          <button class="bdel" onclick="delRec('${r.id}','${esc(r.name)}')">🗑</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -397,90 +561,76 @@
 
   function updateStats() {
     document.getElementById('s1').textContent = allRecords.length;
-    document.getElementById('totalBadge').textContent = allRecords.length + ' Records';
+    document.getElementById('totalChip').textContent = allRecords.length + ' Records';
     const today = new Date().toDateString();
-    const todayCount = allRecords.filter(r => r.timestamp && new Date(r.timestamp.seconds * 1000).toDateString() === today).length;
-    document.getElementById('s2').textContent = todayCount;
-    if (allRecords.length > 0) {
-      const avg = allRecords.reduce((s,r) => s + (r.accuracy||0), 0) / allRecords.length;
-      document.getElementById('s3').textContent = Math.round(avg) + 'm';
-    }
-    const oneHourAgo = Date.now() - 3600000;
-    const recentCount = allRecords.filter(r => r.timestamp && r.timestamp.seconds * 1000 > oneHourAgo).length;
-    document.getElementById('s4').textContent = recentCount;
+    document.getElementById('s2').textContent = allRecords.filter(r => r.timestamp && new Date(r.timestamp.seconds*1000).toDateString()===today).length;
+    document.getElementById('s3').textContent = allRecords.filter(r => r.source==='qr').length;
+    const h1 = Date.now() - 3600000;
+    document.getElementById('s4').textContent = allRecords.filter(r => r.timestamp && r.timestamp.seconds*1000 > h1).length;
   }
 
-  window.showOnMap = function(lat, lng, name) {
-    currentMapLat = lat; currentMapLng = lng;
-    const frame = document.getElementById('mapFrame');
-    const empty = document.getElementById('mapEmpty');
-    frame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.008},${lat-0.008},${lng+0.008},${lat+0.008}&layer=mapnik&marker=${lat},${lng}`;
-    frame.style.display = 'block';
-    empty.style.display = 'none';
-    document.getElementById('mapLabel').textContent = name || 'Active';
-    document.getElementById('mapLabel').className = 'badge badge-green';
-    document.getElementById('mapCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    toast('info', `🗺️ Menunjukkan lokasi ${name || ''}`);
+  window.showMap = function(lat, lng, name) {
+    curLat = lat; curLng = lng;
+    const f = document.getElementById('mapf');
+    f.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.008},${lat-0.008},${lng+0.008},${lat+0.008}&layer=mapnik&marker=${lat},${lng}`;
+    f.style.display = 'block';
+    document.getElementById('mapph').style.display = 'none';
+    document.getElementById('maplabel').textContent = name || 'Active';
+    document.getElementById('maplabel').className = 'chip chip-g';
+    document.getElementById('mapcoord').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    toast('i', `🗺️ ${name}`);
   };
 
-  window.openInGoogleMaps = function() {
-    if (!currentMapLat) { toast('info', 'Pilih rekod dahulu'); return; }
-    window.open(`https://www.google.com/maps?q=${currentMapLat},${currentMapLng}`, '_blank');
+  window.openGmaps = function() {
+    if (!curLat) { toast('i', 'Pilih rekod dahulu'); return; }
+    window.open(`https://www.google.com/maps?q=${curLat},${curLng}`, '_blank');
   };
 
-  window.deleteRecord = async function(id, name) {
-    if (!confirm(`Padam rekod "${name}"?`)) return;
-    try {
-      await deleteDoc(doc(db, 'locations', id));
-      toast('info', `🗑 "${name}" dipadam`);
-    } catch(e) { toast('error', 'Gagal padam: ' + e.message); }
+  window.delRec = async function(id, name) {
+    if (!confirm(`Padam "${name}"?`)) return;
+    try { await deleteDoc(doc(db, 'locations', id)); toast('i', `🗑 "${name}" dipadam`); }
+    catch(e) { toast('e', 'Gagal: ' + e.message); }
   };
 
   window.clearAll = async function() {
-    if (allRecords.length === 0) { toast('info', 'Tiada rekod'); return; }
-    if (!confirm(`Padam SEMUA ${allRecords.length} rekod? Tak boleh undo!`)) return;
+    if (!allRecords.length) { toast('i', 'Tiada rekod'); return; }
+    if (!confirm(`Padam SEMUA ${allRecords.length} rekod?`)) return;
     try {
-      const { writeBatch } = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js");
       const batch = writeBatch(db);
       allRecords.forEach(r => batch.delete(doc(db, 'locations', r.id)));
       await batch.commit();
-      toast('info', '🗑 Semua rekod dipadam');
-    } catch(e) { toast('error', 'Gagal: ' + e.message); }
+      toast('i', '🗑 Semua dipadam');
+    } catch(e) { toast('e', 'Gagal: ' + e.message); }
   };
 
   window.exportCSV = function() {
-    if (!allRecords.length) { toast('info', 'Tiada data'); return; }
-    const h = 'Name,Latitude,Longitude,Accuracy(m),Timestamp\n';
+    if (!allRecords.length) { toast('i', 'Tiada data'); return; }
+    const h = 'Name,Latitude,Longitude,Accuracy(m),Source,Timestamp\n';
     const rows = allRecords.map(r => {
       const ts = r.timestamp ? new Date(r.timestamp.seconds*1000).toISOString() : '';
-      return `"${r.name}",${r.latitude},${r.longitude},${Math.round(r.accuracy||0)},"${ts}"`;
+      return `"${r.name}",${r.latitude},${r.longitude},${Math.round(r.accuracy||0)},"${r.source||'web'}","${ts}"`;
     }).join('\n');
-    dl('geotrack_export.csv', h+rows, 'text/csv');
-    toast('success', `⬇️ CSV exported (${allRecords.length} rekod)`);
+    dl('geotrack.csv', h+rows, 'text/csv');
+    toast('s', `⬇ CSV (${allRecords.length} rekod)`);
   };
 
   window.exportJSON = function() {
-    if (!allRecords.length) { toast('info', 'Tiada data'); return; }
-    const data = allRecords.map(r => ({ ...r, timestamp: r.timestamp ? new Date(r.timestamp.seconds*1000).toISOString() : null }));
-    dl('geotrack_export.json', JSON.stringify(data, null, 2), 'application/json');
-    toast('success', `{ } JSON exported (${allRecords.length} rekod)`);
+    if (!allRecords.length) { toast('i', 'Tiada data'); return; }
+    const data = allRecords.map(r => ({...r, timestamp: r.timestamp ? new Date(r.timestamp.seconds*1000).toISOString() : null}));
+    dl('geotrack.json', JSON.stringify(data,null,2), 'application/json');
+    toast('s', `{ } JSON (${allRecords.length} rekod)`);
   };
 
-  function dl(name, content, mime) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([content], {type:mime}));
-    a.download = name; a.click(); URL.revokeObjectURL(a.href);
-  }
-
+  function dl(n, c, m) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c],{type:m})); a.download=n; a.click(); URL.revokeObjectURL(a.href); }
   function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   window.toast = function(type, msg) {
-    const c = document.getElementById('toastWrap');
+    const c = document.getElementById('tc');
     const t = document.createElement('div');
     t.className = `toast ${type}`;
     t.textContent = msg;
     c.appendChild(t);
-    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(16px)'; t.style.transition='all 0.3s ease'; setTimeout(()=>t.remove(),300); }, 4000);
+    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(12px)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(),300); }, 4000);
   };
 </script>
 </body>
